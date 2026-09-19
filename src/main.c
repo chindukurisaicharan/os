@@ -4,119 +4,160 @@
 
 #include <readline/readline.h>
 
-#include "../include/token.h"
-#include "../include/lexer.h"
-#include "../include/history.h"
-#include "../include/parser.h"
-#include "../include/expand.h"
+#include "history.h"
+#include "token.h"
+#include "lexer.h"
+#include "parser.h"
+#include "expand.h"
+#include "builtin.h"
+#include "executor.h"
+
 
 int main(void)
 {
-    char *input;
+    token_list tokens;
+    pipeline_t pipeline;
+    char *line;
 
-    /* Initialize command history */
+
+    /*
+     * Initialize command history.
+     */
     history_init();
 
-    printf("========================================\n");
-    printf("             Shellforge\n");
-    printf("      A Unix Style Shell written in C\n");
-    printf("========================================\n");
 
+    /*
+     * Display welcome message.
+     */
+    printf("=====================================\n");
+    printf("             Shellforge\n");
+    printf("      A Unix Style Shell in C\n");
+    printf("=====================================\n");
+
+
+    /*
+     * Main shell loop.
+     */
     while (1)
     {
         /*
-         * readline() provides:
-         * UP ARROW   -> previous command
-         * DOWN ARROW -> next command
-         * LEFT/RIGHT -> move cursor
-         * BACKSPACE  -> delete characters
+         * Read command from user.
          */
-        input = readline("shellforge$ ");
+        line = readline("shellforge$ ");
 
-        /* Ctrl+D / EOF */
-        if (input == NULL)
+
+        /*
+         * Ctrl+D / EOF
+         */
+        if (line == NULL)
         {
-            printf("\n");
+            printf("\nGoodbye!\n");
             break;
         }
 
-        /* Ignore empty input */
-        if (strlen(input) == 0)
+
+        /*
+         * Ignore empty commands.
+         */
+        if (strlen(line) == 0)
         {
-            free(input);
+            free(line);
             continue;
         }
 
-        /* Exit command */
-        if (strcmp(input, "exit") == 0)
-        {
-            free(input);
-            break;
-        }
 
-        /* History command */
-        if (strcmp(input, "history") == 0)
+        /*
+         * Special history command.
+         */
+        if (strcmp(line, "history") == 0)
         {
             history_show();
-            free(input);
+
+            free(line);
             continue;
         }
 
-        /*
-         * Store the command in history.
-         * UP/DOWN arrow navigation is handled
-         * by readline().
-         */
-        history_add_command(input);
 
         /*
-         * ============================
-         * LEXER
-         * ============================
+         * Add command to shell history.
          */
-        token_list list;
+        history_add_command(line);
 
-        lexer(input, &list);
 
         /*
-         * Display generated tokens
+         * --------------------------------------------
+         * MILESTONE 2.1
+         * LEXICAL ANALYSIS
+         * --------------------------------------------
          */
-        token_print(&list);
+        lexer(line, &tokens);
+
 
         /*
-         * ============================
-         * PARSER
-         * ============================
+         * --------------------------------------------
+         * MILESTONE 2.2
+         * PARSING
+         * --------------------------------------------
          */
-        pipeline_t pipeline;
-
-        if (parse(&list, &pipeline))
+        if (parse(&tokens, &pipeline))
         {
             /*
-             * ============================
-             * EXPAND
-             * ============================
+             * Expand environment variables.
              */
             expand_variables(&pipeline);
 
-            /*
-             * Display parsed pipeline
-             */
-            pipeline_print(&pipeline);
 
             /*
-             * Free parser memory
+             * ----------------------------------------
+             * MILESTONE 3.1 + 3.2
+             * EXECUTE COMMANDS
+             * ----------------------------------------
+             */
+            for (int i = 0;
+                 i < pipeline.command_count;
+                 i++)
+            {
+                int result;
+
+                result =
+                    execute_command(
+                        &pipeline.commands[i]
+                    );
+
+
+                /*
+                 * Built-in exit returns 1.
+                 */
+                if (result == 1)
+                {
+                    pipeline_free(&pipeline);
+                    free(line);
+                    history_cleanup();
+
+                    return 0;
+                }
+            }
+
+
+            /*
+             * Free dynamically allocated command data.
              */
             pipeline_free(&pipeline);
         }
 
-        free(input);
+
+        /*
+         * Free readline memory.
+         */
+        free(line);
     }
 
-    /* Free history memory */
+
+    /*
+     * Clean up history.
+     */
     history_cleanup();
 
-    printf("Exiting...\n");
 
     return 0;
 }
