@@ -1,30 +1,31 @@
-CC = gcc
+kCC = gcc
 
 CFLAGS = -Wall -Wextra -Iinclude
 
 LDFLAGS = -lreadline
 
-SRC = src/main.c \
-      src/token.c \
-      src/lexer.c \
-      src/parser.c \
-      src/expand.c \
-      src/history.c \
-      src/builtin.c \
-      src/executor.c
-
-OBJ = $(SRC:.c=.o)
-
 TARGET = shellforge
 
+OBJS = src/main.o \
+       src/token.o \
+       src/lexer.o \
+       src/parser.o \
+       src/expand.o \
+       src/history.o \
+       src/builtin.o \
+       src/executor.o
 
-$(TARGET): $(OBJ)
-	$(CC) $(OBJ) -o $(TARGET) $(LDFLAGS)
+
+all: $(TARGET)
 
 
-%.o: %.c
+$(TARGET): $(OBJS)
+	$(CC) $(OBJS) -o $(TARGET) $(LDFLAGS)
+
+
+src/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 
 clean:
-	rm -f $(OBJ) $(TARGET)
+	rm -f $(OBJS) $(TARGET)

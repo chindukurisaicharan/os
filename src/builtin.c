@@ -49,7 +49,7 @@ static int builtin_cd(command_t *cmd)
     }
 
     /*
-     * Change the current working directory.
+     * Change current working directory.
      */
     if (chdir(directory) != 0)
     {
@@ -125,6 +125,7 @@ static int builtin_echo(command_t *cmd)
             printf(" ");
         }
     }
+
     printf("\n");
     printf("my self declared pwd\n");
     printf("\n");
@@ -153,7 +154,7 @@ static int builtin_exit(command_t *cmd)
     }
 
     /*
-     * Tell the main shell loop to terminate.
+     * Return 1 to tell main that exit was requested.
      */
     return 1;
 }
